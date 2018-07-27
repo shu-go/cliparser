@@ -77,6 +77,17 @@ func TestParser(t *testing.T) {
 		gotwant.Test(t, c, &Component{Type: Option, Name: "abc", Arg: "true"})
 	})
 
+	t.Run("OptionLongHyphen", func(t *testing.T) {
+		p := New()
+		p.Feed([]string{"--a-b-c"})
+
+		err := p.Parse()
+		gotwant.TestError(t, err, nil)
+
+		c := p.GetComponent()
+		gotwant.Test(t, c, &Component{Type: Option, Name: "a-b-c", Arg: "true"})
+	})
+
 	t.Run("OptionShortLong", func(t *testing.T) {
 		p := New()
 		p.Feed([]string{"-abc"})
