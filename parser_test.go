@@ -61,7 +61,9 @@ func TestParser(t *testing.T) {
 		p.HintWithArg("a")
 
 		err := p.Parse()
-		gotwant.TestError(t, err, "without")
+		gotwant.TestError(t, err, nil)
+		c := p.GetComponent()
+		gotwant.Test(t, c, &Component{Type: Option, Name: "a", Arg: "-b"})
 	})
 
 	t.Run("OptionLong", func(t *testing.T) {
