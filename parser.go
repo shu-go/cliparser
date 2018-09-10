@@ -27,6 +27,11 @@ type Component struct {
 	Arg  string
 }
 
+type hint struct {
+	name      string
+	namespace []string
+}
+
 func (t ComponentType) String() string {
 	switch t {
 	case Option:
@@ -50,19 +55,30 @@ type Parser struct {
 
 	result []Component
 
-	commandHints  []string
-	withArgHints  []string
-	longNameHints []string
+	currNS        []string
+	aliasHints    []hint
+	commandHints  []hint
+	withArgHints  []hint
+	longNameHints []hint
 }
 
 // New makes a Parser.
 func New() Parser {
 	return Parser{
 		result:        make([]Component, 0, 8),
-		commandHints:  make([]string, 0, 8),
-		withArgHints:  make([]string, 0, 8),
-		longNameHints: make([]string, 0, 8),
+		aliasHints:    make([]hint, 0, 8),
+		commandHints:  make([]hint, 0, 8),
+		withArgHints:  make([]hint, 0, 8),
+		longNameHints: make([]hint, 0, 8),
 	}
+}
+
+// Reset resets its parsing results, except hints.
+// Next, call Feed and Parse.
+func (p *Parser) Reset() {
+	p.args = p.args[:0]
+	p.result = p.result[:0]
+	p.currNS = p.currNS[:0]
 }
 
 // Feed is called when you pass os.Args.
@@ -71,24 +87,64 @@ func (p *Parser) Feed(args []string) {
 	p.args = args
 }
 
+// HintAlias is for defining another name.
+func (p *Parser) HintAlias(alias, name string, optNS ...[]string) {
+	h := hint{name: alias + ":" + name}
+	if len(optNS) > 0 {
+		h.namespace = optNS[0]
+	}
+	p.aliasHints = append(p.aliasHints, h)
+}
+
 // HintCommand is for giving the parser hint that the name is command.
-func (p *Parser) HintCommand(name string) {
-	p.commandHints = append(p.commandHints, name)
+func (p *Parser) HintCommand(name string, optNS ...[]string) {
+	h := hint{name: name}
+	if len(optNS) > 0 {
+		h.namespace = optNS[0]
+	}
+	p.commandHints = append(p.commandHints, h)
 }
 
 // HintWithArg is for giving the parser hint that the name is option and it requires an argument.
-func (p *Parser) HintWithArg(name string) {
-	p.withArgHints = append(p.withArgHints, name)
+func (p *Parser) HintWithArg(name string, optNS ...[]string) {
+	h := hint{name: name}
+	if len(optNS) > 0 {
+		h.namespace = optNS[0]
+	}
+	p.withArgHints = append(p.withArgHints, h)
 }
 
 // HintLongName is for giving the parser hint that the name is option has a long name even if ONE-HYPHEND (-hoge)
-func (p *Parser) HintLongName(name string) {
-	p.longNameHints = append(p.longNameHints, name)
+func (p *Parser) HintLongName(name string, optNS ...[]string) {
+	h := hint{name: name}
+	if len(optNS) > 0 {
+		h.namespace = optNS[0]
+	}
+	p.longNameHints = append(p.longNameHints, h)
+}
+
+func (p Parser) toPhysicalName(alias string) string {
+	for _, h := range p.aliasHints {
+		if strings.HasPrefix(h.name, alias+":") && len(p.currNS) == len(h.namespace) {
+			for i := range h.namespace {
+				if p.currNS[i] != h.namespace[i] {
+					return alias
+				}
+			}
+			return h.name[len(alias)+1:]
+		}
+	}
+	return alias
 }
 
 func (p Parser) testCommand(name string) bool {
 	for _, h := range p.commandHints {
-		if h == name {
+		if h.name == name && len(p.currNS) == len(h.namespace) {
+			for i := range h.namespace {
+				if p.currNS[i] != h.namespace[i] {
+					return false
+				}
+			}
 			return true
 		}
 	}
@@ -96,17 +152,32 @@ func (p Parser) testCommand(name string) bool {
 }
 
 func (p Parser) testWithArg(name string) bool {
+	//rog.Debug("testWithArg", name, p.currNS)
 	for _, h := range p.withArgHints {
-		if h == name {
+		//rog.Debug("  ", h, h.name, name, len(p.currNS), len(h.namespace), len(h.namespace))
+		if h.name == name && len(p.currNS) == len(h.namespace) {
+			for i := range h.namespace {
+				if p.currNS[i] != h.namespace[i] {
+					//rog.Debug(" =>false")
+					return false
+				}
+			}
+			//rog.Debug(" =>true")
 			return true
 		}
 	}
+	//rog.Debug(" =>false")
 	return false
 }
 
 func (p Parser) testLongName(name string) bool {
 	for _, h := range p.longNameHints {
-		if h == name {
+		if h.name == name && len(p.currNS) == len(h.namespace) {
+			for i := range h.namespace {
+				if p.currNS[i] != h.namespace[i] {
+					return false
+				}
+			}
 			return true
 		}
 	}
@@ -128,6 +199,11 @@ func (p *Parser) GetComponent() *Component {
 // Parse parses given (at Parser.Feed) command line string.
 // Call Parser.GetComponent-s serially to get results.
 func (p *Parser) Parse() error {
+	//rog.Debug("aliasHints", p.aliasHints)
+	//rog.Debug("commandHints", p.commandHints)
+	//rog.Debug("withArgHints", p.withArgHints)
+	//rog.Debug("longNameHints", p.longNameHints)
+
 	var optName string
 
 	// clear result
@@ -138,6 +214,7 @@ func (p *Parser) Parse() error {
 		if l == 0 {
 			break
 		}
+		//rog.Debug("token: ", t, l)
 
 		// option?
 		if (optName == "" || !p.testWithArg(optName)) && strings.HasPrefix(t, "-") {
@@ -152,7 +229,7 @@ func (p *Parser) Parse() error {
 				//rog.Debug("append", "option", optName)
 				p.result = append(p.result, Component{
 					Type: Option,
-					Name: optName,
+					Name: p.toPhysicalName(optName),
 					Arg:  "true",
 				})
 			}
@@ -181,7 +258,7 @@ func (p *Parser) Parse() error {
 					//rog.Debug("append", "option", optName)
 					p.result = append(p.result, Component{
 						Type: Option,
-						Name: optName,
+						Name: p.toPhysicalName(optName),
 						Arg:  "true",
 					})
 				}
@@ -207,10 +284,10 @@ func (p *Parser) Parse() error {
 					}
 
 					// argument for an option
-					//rog.Debug("append", "option", optName, t)
+					//rog.Debug("append", "option", p.toPhysicalName(optName), t)
 					p.result = append(p.result, Component{
 						Type: Option,
-						Name: optName,
+						Name: p.toPhysicalName(optName),
 						Arg:  t,
 					})
 					optName = ""
@@ -221,7 +298,7 @@ func (p *Parser) Parse() error {
 					//rog.Debug("append", "option", optName)
 					p.result = append(p.result, Component{
 						Type: Option,
-						Name: optName,
+						Name: p.toPhysicalName(optName),
 						Arg:  "true",
 					})
 					optName = ""
@@ -233,8 +310,9 @@ func (p *Parser) Parse() error {
 				//rog.Debug("append", "command", t)
 				p.result = append(p.result, Component{
 					Type: Command,
-					Name: t,
+					Name: p.toPhysicalName(t),
 				})
+				p.currNS = append(p.currNS, p.toPhysicalName(t))
 			} else {
 				//rog.Debug("append", "arg", t)
 				p.result = append(p.result, Component{
@@ -253,7 +331,7 @@ func (p *Parser) Parse() error {
 		//rog.Debug("append", "option", optName)
 		p.result = append(p.result, Component{
 			Type: Option,
-			Name: optName,
+			Name: p.toPhysicalName(optName),
 			Arg:  "true",
 		})
 		//optName = ""
