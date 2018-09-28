@@ -55,21 +55,23 @@ type Parser struct {
 
 	result []Component
 
-	currNS        []string
-	aliasHints    []hint
-	commandHints  []hint
-	withArgHints  []hint
-	longNameHints []hint
+	currNS           []string
+	aliasHints       []hint
+	commandHints     []hint
+	withArgHints     []hint
+	longNameHints    []hint
+	optsMaybeGrouped bool
 }
 
 // New makes a Parser.
 func New() Parser {
 	return Parser{
-		result:        make([]Component, 0, 8),
-		aliasHints:    make([]hint, 0, 8),
-		commandHints:  make([]hint, 0, 8),
-		withArgHints:  make([]hint, 0, 8),
-		longNameHints: make([]hint, 0, 8),
+		result:           make([]Component, 0, 8),
+		aliasHints:       make([]hint, 0, 8),
+		commandHints:     make([]hint, 0, 8),
+		withArgHints:     make([]hint, 0, 8),
+		longNameHints:    make([]hint, 0, 8),
+		optsMaybeGrouped: true,
 	}
 }
 
@@ -121,6 +123,11 @@ func (p *Parser) HintLongName(name string, optNS ...[]string) {
 		h.namespace = optNS[0]
 	}
 	p.longNameHints = append(p.longNameHints, h)
+}
+
+// HintNoOptionsGrouped disallows -abc -> -a -b -c
+func (p *Parser) HintNoOptionsGrouped() {
+	p.optsMaybeGrouped = false
 }
 
 func (p Parser) toPhysicalName(alias string) string {
@@ -246,24 +253,26 @@ func (p *Parser) Parse() error {
 				continue
 			}
 
-			// short names (-abc -> -a -b -c)
+			if p.optsMaybeGrouped {
+				// short names (-abc -> -a -b -c)
 
-			names := optName
-			optName = ""
-			for _, n := range names {
-				if optName != "" {
-					if p.testWithArg(optName) {
-						return fmt.Errorf("option %q without arguments", optName)
+				names := optName
+				optName = ""
+				for _, n := range names {
+					if optName != "" {
+						if p.testWithArg(optName) {
+							return fmt.Errorf("option %q without arguments", optName)
+						}
+						//rog.Debug("append", "option", optName)
+						p.result = append(p.result, Component{
+							Type: Option,
+							Name: p.toPhysicalName(optName),
+							Arg:  "true",
+						})
 					}
-					//rog.Debug("append", "option", optName)
-					p.result = append(p.result, Component{
-						Type: Option,
-						Name: p.toPhysicalName(optName),
-						Arg:  "true",
-					})
-				}
 
-				optName = string(n)
+					optName = string(n)
+				}
 			}
 			continue
 

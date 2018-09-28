@@ -133,6 +133,34 @@ func TestParser(t *testing.T) {
 		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Option, Name: "c", Arg: "ccc"})
 	})
 
+	t.Run("OptionShort=Long", func(t *testing.T) {
+		p := cliparser.New()
+		p.Feed([]string{"-abc"})
+		//p.HintLongName("abc")
+
+		err := p.Parse()
+		gotwant.TestError(t, err, nil)
+
+		c := p.GetComponent()
+		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Option, Name: "a", Arg: "true"})
+		c = p.GetComponent()
+		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Option, Name: "b", Arg: "true"})
+		c = p.GetComponent()
+		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Option, Name: "c", Arg: "true"})
+
+		//
+
+		p.Reset()
+		p.Feed([]string{"-abc", "-def"})
+		p.HintNoOptionsGrouped()
+
+		err = p.Parse()
+		gotwant.TestError(t, err, nil)
+
+		c = p.GetComponent()
+		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Option, Name: "abc", Arg: "true"})
+	})
+
 	t.Run("SLSL", func(t *testing.T) {
 		p := cliparser.New()
 		p.Feed([]string{"-a", "--bb", "-c", "--dd"})
