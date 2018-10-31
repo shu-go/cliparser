@@ -147,12 +147,15 @@ func (p Parser) toPhysicalName(alias string) string {
 func (p Parser) testCommand(name string) bool {
 	for _, h := range p.commandHints {
 		if h.name == name && len(p.currNS) == len(h.namespace) {
+			ok := true
 			for i := range h.namespace {
 				if p.currNS[i] != h.namespace[i] {
-					return false
+					ok = false
 				}
 			}
-			return true
+			if ok {
+				return true
+			}
 		}
 	}
 	return false
@@ -163,14 +166,15 @@ func (p Parser) testWithArg(name string) bool {
 	for _, h := range p.withArgHints {
 		//rog.Debug("  ", h, h.name, name, len(p.currNS), len(h.namespace), len(h.namespace))
 		if h.name == name && len(p.currNS) == len(h.namespace) {
+			ok := true
 			for i := range h.namespace {
 				if p.currNS[i] != h.namespace[i] {
-					//rog.Debug(" =>false")
-					return false
+					ok = false
 				}
 			}
-			//rog.Debug(" =>true")
-			return true
+			if ok {
+				return true
+			}
 		}
 	}
 	//rog.Debug(" =>false")
@@ -180,12 +184,15 @@ func (p Parser) testWithArg(name string) bool {
 func (p Parser) testLongName(name string) bool {
 	for _, h := range p.longNameHints {
 		if h.name == name && len(p.currNS) == len(h.namespace) {
+			ok := true
 			for i := range h.namespace {
 				if p.currNS[i] != h.namespace[i] {
-					return false
+					ok = false
 				}
 			}
-			return true
+			if ok {
+				return true
+			}
 		}
 	}
 	return false
