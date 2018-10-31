@@ -162,9 +162,7 @@ func (p Parser) testCommand(name string) bool {
 }
 
 func (p Parser) testWithArg(name string) bool {
-	//rog.Debug("testWithArg", name, p.currNS)
 	for _, h := range p.withArgHints {
-		//rog.Debug("  ", h, h.name, name, len(p.currNS), len(h.namespace), len(h.namespace))
 		if h.name == name && len(p.currNS) == len(h.namespace) {
 			ok := true
 			for i := range h.namespace {
@@ -177,7 +175,6 @@ func (p Parser) testWithArg(name string) bool {
 			}
 		}
 	}
-	//rog.Debug(" =>false")
 	return false
 }
 
@@ -213,11 +210,6 @@ func (p *Parser) GetComponent() *Component {
 // Parse parses given (at Parser.Feed) command line string.
 // Call Parser.GetComponent-s serially to get results.
 func (p *Parser) Parse() error {
-	//rog.Debug("aliasHints", p.aliasHints)
-	//rog.Debug("commandHints", p.commandHints)
-	//rog.Debug("withArgHints", p.withArgHints)
-	//rog.Debug("longNameHints", p.longNameHints)
-
 	var optName string
 
 	// clear result
@@ -228,7 +220,6 @@ func (p *Parser) Parse() error {
 		if l == 0 {
 			break
 		}
-		//rog.Debug("token: ", t, l)
 
 		// option?
 		if (optName == "" || !p.testWithArg(optName)) && strings.HasPrefix(t, "-") {
@@ -240,7 +231,6 @@ func (p *Parser) Parse() error {
 					}
 				*/
 
-				//rog.Debug("append", "option", optName)
 				p.result = append(p.result, Component{
 					Type: Option,
 					Name: p.toPhysicalName(optName),
@@ -270,7 +260,6 @@ func (p *Parser) Parse() error {
 						if p.testWithArg(optName) {
 							return fmt.Errorf("option %q without arguments", optName)
 						}
-						//rog.Debug("append", "option", optName)
 						p.result = append(p.result, Component{
 							Type: Option,
 							Name: p.toPhysicalName(optName),
@@ -295,12 +284,10 @@ func (p *Parser) Parse() error {
 			if optName != "" {
 				if p.testWithArg(optName) {
 					if p.testCommand(t) {
-						//rog.Debug(p.commandHints)
 						return fmt.Errorf("option %q must not have an argument", optName)
 					}
 
 					// argument for an option
-					//rog.Debug("append", "option", p.toPhysicalName(optName), t)
 					p.result = append(p.result, Component{
 						Type: Option,
 						Name: p.toPhysicalName(optName),
@@ -311,7 +298,6 @@ func (p *Parser) Parse() error {
 					continue
 
 				} else {
-					//rog.Debug("append", "option", optName)
 					p.result = append(p.result, Component{
 						Type: Option,
 						Name: p.toPhysicalName(optName),
@@ -323,14 +309,12 @@ func (p *Parser) Parse() error {
 
 			// command or args
 			if p.testCommand(t) {
-				//rog.Debug("append", "command", t)
 				p.result = append(p.result, Component{
 					Type: Command,
 					Name: p.toPhysicalName(t),
 				})
 				p.currNS = append(p.currNS, p.toPhysicalName(t))
 			} else {
-				//rog.Debug("append", "arg", t)
 				p.result = append(p.result, Component{
 					Type: Arg,
 					Name: "",
@@ -344,7 +328,6 @@ func (p *Parser) Parse() error {
 		if p.testWithArg(optName) {
 			return fmt.Errorf("option %q without arguments", optName)
 		}
-		//rog.Debug("append", "option", optName)
 		p.result = append(p.result, Component{
 			Type: Option,
 			Name: p.toPhysicalName(optName),
