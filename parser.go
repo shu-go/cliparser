@@ -56,10 +56,10 @@ type Parser struct {
 	result []Component
 
 	currNS           []string
-	aliasHints       []hint
-	commandHints     []hint
-	withArgHints     []hint
-	longNameHints    []hint
+	aliasHints       map[string]hint
+	commandHints     map[string]hint
+	withArgHints     map[string]hint
+	longNameHints    map[string]hint
 	optsMaybeGrouped bool
 }
 
@@ -67,10 +67,6 @@ type Parser struct {
 func New() Parser {
 	return Parser{
 		result:           make([]Component, 0, 8),
-		aliasHints:       make([]hint, 0, 8),
-		commandHints:     make([]hint, 0, 8),
-		withArgHints:     make([]hint, 0, 8),
-		longNameHints:    make([]hint, 0, 8),
 		optsMaybeGrouped: true,
 	}
 }
@@ -95,7 +91,10 @@ func (p *Parser) HintAlias(alias, name string, optNS ...[]string) {
 	if len(optNS) > 0 {
 		h.namespace = optNS[0]
 	}
-	p.aliasHints = append(p.aliasHints, h)
+	if p.aliasHints == nil {
+		p.aliasHints = make(map[string]hint)
+	}
+	p.aliasHints[alias] = h
 }
 
 // HintCommand is for giving the parser hint that the name is command.
@@ -104,7 +103,10 @@ func (p *Parser) HintCommand(name string, optNS ...[]string) {
 	if len(optNS) > 0 {
 		h.namespace = optNS[0]
 	}
-	p.commandHints = append(p.commandHints, h)
+	if p.commandHints == nil {
+		p.commandHints = make(map[string]hint)
+	}
+	p.commandHints[name] = h
 }
 
 // HintWithArg is for giving the parser hint that the name is option and it requires an argument.
@@ -113,7 +115,10 @@ func (p *Parser) HintWithArg(name string, optNS ...[]string) {
 	if len(optNS) > 0 {
 		h.namespace = optNS[0]
 	}
-	p.withArgHints = append(p.withArgHints, h)
+	if p.withArgHints == nil {
+		p.withArgHints = make(map[string]hint)
+	}
+	p.withArgHints[name] = h
 }
 
 // HintLongName is for giving the parser hint that the name is option has a long name even if ONE-HYPHEND (-hoge)
@@ -122,7 +127,10 @@ func (p *Parser) HintLongName(name string, optNS ...[]string) {
 	if len(optNS) > 0 {
 		h.namespace = optNS[0]
 	}
-	p.longNameHints = append(p.longNameHints, h)
+	if p.longNameHints == nil {
+		p.longNameHints = make(map[string]hint)
+	}
+	p.longNameHints[name] = h
 }
 
 // HintNoOptionsGrouped disallows -abc -> -a -b -c
@@ -131,8 +139,8 @@ func (p *Parser) HintNoOptionsGrouped() {
 }
 
 func (p Parser) toPhysicalName(alias string) string {
-	for _, h := range p.aliasHints {
-		if strings.HasPrefix(h.name, alias+":") && len(p.currNS) == len(h.namespace) {
+	if h, found := p.aliasHints[alias]; found {
+		if len(p.currNS) == len(h.namespace) {
 			for i := range h.namespace {
 				if p.currNS[i] != h.namespace[i] {
 					return alias
@@ -145,8 +153,8 @@ func (p Parser) toPhysicalName(alias string) string {
 }
 
 func (p Parser) testCommand(name string) bool {
-	for _, h := range p.commandHints {
-		if h.name == name && len(p.currNS) == len(h.namespace) {
+	if h, found := p.commandHints[name]; found {
+		if len(p.currNS) == len(h.namespace) {
 			ok := true
 			for i := range h.namespace {
 				if p.currNS[i] != h.namespace[i] {
@@ -162,8 +170,8 @@ func (p Parser) testCommand(name string) bool {
 }
 
 func (p Parser) testWithArg(name string) bool {
-	for _, h := range p.withArgHints {
-		if h.name == name && len(p.currNS) == len(h.namespace) {
+	if h, found := p.withArgHints[name]; found {
+		if len(p.currNS) == len(h.namespace) {
 			ok := true
 			for i := range h.namespace {
 				if p.currNS[i] != h.namespace[i] {
@@ -179,8 +187,8 @@ func (p Parser) testWithArg(name string) bool {
 }
 
 func (p Parser) testLongName(name string) bool {
-	for _, h := range p.longNameHints {
-		if h.name == name && len(p.currNS) == len(h.namespace) {
+	if h, found := p.longNameHints[name]; found {
+		if len(p.currNS) == len(h.namespace) {
 			ok := true
 			for i := range h.namespace {
 				if p.currNS[i] != h.namespace[i] {
