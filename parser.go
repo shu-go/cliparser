@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// ComponentType represents the type of parsed component.
 type ComponentType int
 
 const (
