@@ -92,6 +92,10 @@ func (p *Parser) Feed(args []string) {
 
 // HintAlias is for defining another name.
 func (p *Parser) HintAlias(alias, name string, optNS ...[]string) {
+	if alias == name {
+		return
+	}
+
 	h := hint{name: alias + ":" + name}
 	if len(optNS) > 0 {
 		h.namespace = optNS[0]
