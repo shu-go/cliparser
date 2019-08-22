@@ -3,8 +3,8 @@ package cliparser_test
 import (
 	"testing"
 
-	"bitbucket.org/shu_go/cliparser"
-	"bitbucket.org/shu_go/gotwant"
+	"github.com/shu-go/cliparser"
+	"github.com/shu-go/gotwant"
 )
 
 func TestParser(t *testing.T) {
