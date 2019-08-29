@@ -279,7 +279,7 @@ func (p *Parser) Parse() error {
 
 		} else if t == "=" {
 			if optName == "" {
-				return fmt.Errorf("appeard = while no option given")
+				return fmt.Errorf("appeared = while no option given")
 			} else if !p.testWithArg(optName) {
 				return fmt.Errorf("option %q must not have an argument", optName)
 			}
