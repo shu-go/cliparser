@@ -136,25 +136,25 @@ func (p *Parser) HintNoOptionsGrouped() {
 }
 
 func (p Parser) toPhysicalName(alias string) string {
-	for _, h := range p.aliasHints {
-		if strings.HasPrefix(h.name, alias+":") && len(p.currNS) == len(h.namespace) {
-			for i := range h.namespace {
-				if p.currNS[i] != h.namespace[i] {
+	for ai := 0; ai < len(p.aliasHints); ai++ {
+		if strings.HasPrefix(p.aliasHints[ai].name, alias+":") && len(p.currNS) == len(p.aliasHints[ai].namespace) {
+			for i := range p.aliasHints[ai].namespace {
+				if p.currNS[i] != p.aliasHints[ai].namespace[i] {
 					return alias
 				}
 			}
-			return h.name[len(alias)+1:]
+			return p.aliasHints[ai].name[len(alias)+1:]
 		}
 	}
 	return alias
 }
 
 func (p Parser) testCommand(name string) bool {
-	for _, h := range p.commandHints {
-		if h.name == name && len(p.currNS) == len(h.namespace) {
+	for ci := range p.commandHints {
+		if p.commandHints[ci].name == name && len(p.currNS) == len(p.commandHints[ci].namespace) {
 			ok := true
-			for i := range h.namespace {
-				if p.currNS[i] != h.namespace[i] {
+			for i := range p.commandHints[ci].namespace {
+				if p.currNS[i] != p.commandHints[ci].namespace[i] {
 					ok = false
 				}
 			}
@@ -167,11 +167,11 @@ func (p Parser) testCommand(name string) bool {
 }
 
 func (p Parser) testWithArg(name string) bool {
-	for _, h := range p.withArgHints {
-		if h.name == name && len(p.currNS) == len(h.namespace) {
+	for wi := range p.withArgHints {
+		if p.withArgHints[wi].name == name && len(p.currNS) == len(p.withArgHints[wi].namespace) {
 			ok := true
-			for i := range h.namespace {
-				if p.currNS[i] != h.namespace[i] {
+			for i := range p.withArgHints[wi].namespace {
+				if p.currNS[i] != p.withArgHints[wi].namespace[i] {
 					ok = false
 				}
 			}
@@ -184,11 +184,11 @@ func (p Parser) testWithArg(name string) bool {
 }
 
 func (p Parser) testLongName(name string) bool {
-	for _, h := range p.longNameHints {
-		if h.name == name && len(p.currNS) == len(h.namespace) {
+	for li := range p.longNameHints {
+		if p.longNameHints[li].name == name && len(p.currNS) == len(p.longNameHints[li].namespace) {
 			ok := true
-			for i := range h.namespace {
-				if p.currNS[i] != h.namespace[i] {
+			for i := range p.longNameHints[li].namespace {
+				if p.currNS[i] != p.longNameHints[li].namespace[i] {
 					ok = false
 				}
 			}
@@ -260,7 +260,7 @@ func (p *Parser) Parse() error {
 
 				names := optName
 				optName = ""
-				for _, n := range names {
+				for ni := range names {
 					if optName != "" {
 						if p.testWithArg(optName) {
 							return fmt.Errorf("option %q without arguments", optName)
@@ -272,7 +272,7 @@ func (p *Parser) Parse() error {
 						})
 					}
 
-					optName = string(n)
+					optName = string(names[ni])
 				}
 			}
 			continue
