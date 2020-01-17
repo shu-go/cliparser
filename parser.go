@@ -138,7 +138,7 @@ func (p *Parser) HintNoOptionsGrouped() {
 func (p Parser) toPhysicalName(alias string) string {
 	for ai := 0; ai < len(p.aliasHints); ai++ {
 		if strings.HasPrefix(p.aliasHints[ai].name, alias+":") && len(p.currNS) == len(p.aliasHints[ai].namespace) {
-			for i := range p.aliasHints[ai].namespace {
+			for i := 0; i < len(p.aliasHints[ai].namespace); i++ {
 				if p.currNS[i] != p.aliasHints[ai].namespace[i] {
 					return alias
 				}
@@ -150,10 +150,10 @@ func (p Parser) toPhysicalName(alias string) string {
 }
 
 func (p Parser) testCommand(name string) bool {
-	for ci := range p.commandHints {
+	for ci := 0; ci < len(p.commandHints); ci++ {
 		if p.commandHints[ci].name == name && len(p.currNS) == len(p.commandHints[ci].namespace) {
 			ok := true
-			for i := range p.commandHints[ci].namespace {
+			for i := 0; i < len(p.commandHints[ci].namespace); i++ {
 				if p.currNS[i] != p.commandHints[ci].namespace[i] {
 					ok = false
 				}
@@ -167,10 +167,10 @@ func (p Parser) testCommand(name string) bool {
 }
 
 func (p Parser) testWithArg(name string) bool {
-	for wi := range p.withArgHints {
+	for wi := 0; wi < len(p.withArgHints); wi++ {
 		if p.withArgHints[wi].name == name && len(p.currNS) == len(p.withArgHints[wi].namespace) {
 			ok := true
-			for i := range p.withArgHints[wi].namespace {
+			for i := 0; i < len(p.withArgHints[wi].namespace); i++ {
 				if p.currNS[i] != p.withArgHints[wi].namespace[i] {
 					ok = false
 				}
@@ -184,7 +184,7 @@ func (p Parser) testWithArg(name string) bool {
 }
 
 func (p Parser) testLongName(name string) bool {
-	for li := range p.longNameHints {
+	for li := 0; li < len(p.longNameHints); li++ {
 		if p.longNameHints[li].name == name && len(p.currNS) == len(p.longNameHints[li].namespace) {
 			ok := true
 			for i := range p.longNameHints[li].namespace {
@@ -260,7 +260,7 @@ func (p *Parser) Parse() error {
 
 				names := optName
 				optName = ""
-				for ni := range names {
+				for ni := 0; ni < len(names); ni++ {
 					if optName != "" {
 						if p.testWithArg(optName) {
 							return fmt.Errorf("option %q without arguments", optName)
