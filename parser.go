@@ -216,6 +216,7 @@ func (p *Parser) GetComponent() *Component {
 // Call Parser.GetComponent-s serially to get results.
 func (p *Parser) Parse() error {
 	var optName string
+	var eqGiven bool
 
 	// clear result
 	p.result = p.result[:0]
@@ -230,12 +231,6 @@ func (p *Parser) Parse() error {
 		if (optName == "" || !p.testWithArg(optName)) && strings.HasPrefix(t, "-") {
 			// first, process the prev option (because curr token is not an arg)
 			if optName != "" {
-				/*
-					if p.testWithArg(optName) {
-						return fmt.Errorf("option %q without arguments", optName)
-					}
-				*/
-
 				p.result = append(p.result, Component{
 					Type: Option,
 					Name: p.toPhysicalName(optName),
@@ -246,11 +241,13 @@ func (p *Parser) Parse() error {
 			// long name?
 			if strings.HasPrefix(t, "--") {
 				optName = t[2:]
+				eqGiven = false
 				continue
 			}
 
 			// long name or short-named options ?
 			optName = t[1:]
+			eqGiven = false
 			if p.testLongName(optName) {
 				continue
 			}
@@ -260,6 +257,7 @@ func (p *Parser) Parse() error {
 
 				names := optName
 				optName = ""
+				eqGiven = false
 				for ni := 0; ni < len(names); ni++ {
 					if optName != "" {
 						if p.testWithArg(optName) {
@@ -273,11 +271,14 @@ func (p *Parser) Parse() error {
 					}
 
 					optName = string(names[ni])
+					eqGiven = false
 				}
 			}
 			continue
 
 		} else if t == "=" {
+			eqGiven = true
+
 			if optName == "" {
 				return fmt.Errorf("appeared = while no option given")
 			} else if !p.testWithArg(optName) {
@@ -289,16 +290,37 @@ func (p *Parser) Parse() error {
 			if optName != "" {
 				if p.testWithArg(optName) {
 					if p.testCommand(t) {
-						return fmt.Errorf("option %q must not have an argument", optName)
-					}
+						if eqGiven {
+							// first, process the prev option (because curr token is not an arg)
+							p.result = append(p.result, Component{
+								Type: Option,
+								Name: p.toPhysicalName(optName),
+								Arg:  "",
+							})
+							optName = ""
+							eqGiven = false
 
-					// argument for an option
-					p.result = append(p.result, Component{
-						Type: Option,
-						Name: p.toPhysicalName(optName),
-						Arg:  t,
-					})
-					optName = ""
+							// command
+							p.result = append(p.result, Component{
+								Type: Command,
+								Name: p.toPhysicalName(t),
+							})
+							p.currNS = append(p.currNS, p.toPhysicalName(t))
+
+						} else {
+							return fmt.Errorf("option %q without arguments", optName)
+						}
+					} else {
+
+						// argument for an option
+						p.result = append(p.result, Component{
+							Type: Option,
+							Name: p.toPhysicalName(optName),
+							Arg:  t,
+						})
+						optName = ""
+						eqGiven = false
+					}
 
 					continue
 
@@ -309,6 +331,7 @@ func (p *Parser) Parse() error {
 						Arg:  "true",
 					})
 					optName = ""
+					eqGiven = false
 				}
 			}
 
@@ -331,14 +354,24 @@ func (p *Parser) Parse() error {
 
 	if optName != "" {
 		if p.testWithArg(optName) {
-			return fmt.Errorf("option %q without arguments", optName)
+			if eqGiven {
+				p.result = append(p.result, Component{
+					Type: Option,
+					Name: p.toPhysicalName(optName),
+					Arg:  "",
+				})
+			} else {
+				return fmt.Errorf("option %q without arguments", optName)
+			}
+		} else {
+			p.result = append(p.result, Component{
+				Type: Option,
+				Name: p.toPhysicalName(optName),
+				Arg:  "true",
+			})
+			//optName = ""
+			//eqGiven = false
 		}
-		p.result = append(p.result, Component{
-			Type: Option,
-			Name: p.toPhysicalName(optName),
-			Arg:  "true",
-		})
-		//optName = ""
 	}
 
 	return nil
