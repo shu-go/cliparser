@@ -207,7 +207,7 @@ func TestParser(t *testing.T) {
 		c = p.GetComponent()
 		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Arg, Arg: "sub"})
 		c = p.GetComponent()
-		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Option, Name: "b", Arg: "true"})
+		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Arg, Name: "", Arg: "-b"})
 	})
 
 	t.Run("CommandArg", func(t *testing.T) {
@@ -413,6 +413,31 @@ func TestParser(t *testing.T) {
 		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Option, Name: "string", Arg: ""})
 		c = p.GetComponent()
 		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Command, Name: "sub"})
+	})
+
+	t.Run("OptCmdAfterArgs", func(t *testing.T) {
+		p := cliparser.New()
+		p.Feed([]string{"--opt1", "arg1", "--opt2"})
+		err := p.Parse()
+		gotwant.TestError(t, err, nil)
+		c := p.GetComponent()
+		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Option, Name: "opt1", Arg: "true"})
+		c = p.GetComponent()
+		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Arg, Name: "", Arg: "arg1"})
+		c = p.GetComponent()
+		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Arg, Name: "", Arg: "--opt2"})
+
+		p.Reset()
+		p.Feed([]string{"--string", "arg1?", "arg1", "sub"})
+		p.HintWithArg("string")
+		p.HintCommand("sub")
+		err = p.Parse()
+		c = p.GetComponent()
+		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Option, Name: "string", Arg: "arg1?"})
+		c = p.GetComponent()
+		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Arg, Name: "", Arg: "arg1"})
+		c = p.GetComponent()
+		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Arg, Name: "", Arg: "sub"})
 	})
 }
 

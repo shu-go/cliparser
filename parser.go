@@ -217,6 +217,7 @@ func (p *Parser) GetComponent() *Component {
 func (p *Parser) Parse() error {
 	var optName string
 	var eqGiven bool
+	var argsGiven bool
 
 	// clear result
 	p.result = p.result[:0]
@@ -225,6 +226,15 @@ func (p *Parser) Parse() error {
 		t, l := token(&p.args)
 		if l == 0 {
 			break
+		}
+
+		if argsGiven {
+			p.result = append(p.result, Component{
+				Type: Arg,
+				Name: "",
+				Arg:  t,
+			})
+			continue
 		}
 
 		// option?
@@ -348,6 +358,7 @@ func (p *Parser) Parse() error {
 					Name: "",
 					Arg:  t,
 				})
+				argsGiven = true
 			}
 		}
 	}
