@@ -56,23 +56,25 @@ type Parser struct {
 
 	result []Component
 
-	currNS           []string
-	aliasHints       []hint
-	commandHints     []hint
-	withArgHints     []hint
-	longNameHints    []hint
-	optsMaybeGrouped bool
+	currNS              []string
+	aliasHints          []hint
+	commandHints        []hint
+	withArgHints        []hint
+	longNameHints       []hint
+	optsMaybeGrouped    bool
+	doubleHyphenEnabled bool
 }
 
 // New makes a Parser.
 func New() Parser {
 	return Parser{
-		result:           make([]Component, 0, 8),
-		aliasHints:       make([]hint, 0, 8),
-		commandHints:     make([]hint, 0, 8),
-		withArgHints:     make([]hint, 0, 8),
-		longNameHints:    make([]hint, 0, 8),
-		optsMaybeGrouped: true,
+		result:              make([]Component, 0, 8),
+		aliasHints:          make([]hint, 0, 8),
+		commandHints:        make([]hint, 0, 8),
+		withArgHints:        make([]hint, 0, 8),
+		longNameHints:       make([]hint, 0, 8),
+		optsMaybeGrouped:    true,
+		doubleHyphenEnabled: true,
 	}
 }
 
@@ -133,6 +135,11 @@ func (p *Parser) HintLongName(name string, optNS ...[]string) {
 // HintNoOptionsGrouped disallows -abc -> -a -b -c
 func (p *Parser) HintNoOptionsGrouped() {
 	p.optsMaybeGrouped = false
+}
+
+// HintDisableDoubleHyphen disallows -abc -> -a -b -c
+func (p *Parser) HintDisableDoubleHyphen() {
+	p.doubleHyphenEnabled = false
 }
 
 func (p Parser) toPhysicalName(alias string) string {
@@ -219,6 +226,8 @@ func (p *Parser) Parse() error {
 	var eqGiven bool
 	var argsGiven bool
 
+	var doubleDash bool
+
 	// clear result
 	p.result = p.result[:0]
 
@@ -226,6 +235,25 @@ func (p *Parser) Parse() error {
 		t, l := token(&p.args)
 		if l == 0 {
 			break
+		}
+
+		if p.doubleHyphenEnabled {
+			if doubleDash {
+				if optName != "" && !p.testWithArg(optName) {
+					return fmt.Errorf("option %q without arguments", optName)
+				}
+				p.result = append(p.result, Component{
+					Type: Arg,
+					Name: "",
+					Arg:  t,
+				})
+				continue
+			}
+
+			if t == "--" {
+				doubleDash = true
+				continue
+			}
 		}
 
 		if argsGiven {
@@ -238,7 +266,7 @@ func (p *Parser) Parse() error {
 		}
 
 		// option?
-		if (optName == "" || !p.testWithArg(optName)) && strings.HasPrefix(t, "-") {
+		if (optName == "" || !p.testWithArg(optName)) && strings.HasPrefix(t, "-") && t != "--" {
 			// first, process the prev option (because curr token is not an arg)
 			if optName != "" {
 				p.result = append(p.result, Component{
