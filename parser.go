@@ -308,7 +308,7 @@ func (p *Parser) Parse() error {
 						})
 					}
 
-					optName = string(names[ni])
+					optName = names[ni : ni+1]
 					eqGiven = false
 				}
 			}
