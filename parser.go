@@ -94,7 +94,15 @@ func (p *Parser) Reset() {
 // Feed is called when you pass os.Args.
 // On next step, call Parser.Parse.
 func (p *Parser) Feed(args []string) {
-	p.args = args
+	for _, arg := range args {
+		if strings.HasPrefix(arg, `\"`) {
+			arg = arg[1:]
+		}
+		if strings.HasSuffix(arg, `\"`) {
+			arg = arg[:len(arg)-2] + `"`
+		}
+		p.args = append(p.args, arg)
+	}
 }
 
 // HintAlias is for defining another name.
@@ -450,7 +458,7 @@ func token(args *[]string) (t string, length int) {
 	case '"':
 		for i := 1; i < len(src); i++ {
 			if src[i] == '"' {
-				t, length = src[1:i], i-2 //+ 1
+				t, length = src[1:i], i+1
 				break
 			}
 		}

@@ -19,6 +19,32 @@ func TestParser(t *testing.T) {
 		gotwant.Test(t, c, (*cliparser.Component)(nil))
 	})
 
+	t.Run("Quote", func(t *testing.T) {
+		p := cliparser.New()
+		p.Feed([]string{`--opt`, `"a=b=c"`})
+
+		err := p.Parse()
+		gotwant.TestError(t, err, nil)
+
+		c := p.GetComponent()
+		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Option, Name: "opt", Arg: "true"})
+		c = p.GetComponent()
+		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Arg, Name: "", Arg: "a=b=c"})
+	})
+
+	t.Run("BSQuote", func(t *testing.T) {
+		p := cliparser.New()
+		p.Feed([]string{`--opt`, `\"a=b=c\"`})
+
+		err := p.Parse()
+		gotwant.TestError(t, err, nil)
+
+		c := p.GetComponent()
+		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Option, Name: "opt", Arg: "true"})
+		c = p.GetComponent()
+		gotwant.Test(t, c, &cliparser.Component{Type: cliparser.Arg, Name: "", Arg: "a=b=c"})
+	})
+
 	t.Run("Option1", func(t *testing.T) {
 		p := cliparser.New()
 		p.Feed([]string{"-a"})
