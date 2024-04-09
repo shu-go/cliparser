@@ -463,7 +463,7 @@ func token(args *[]string) (t string, length int) {
 			}
 		}
 		if length == 0 { // centinel
-			t, length = src[1:], len(src)-1
+			t, length = src[1:], len(src)
 		}
 
 	default:
